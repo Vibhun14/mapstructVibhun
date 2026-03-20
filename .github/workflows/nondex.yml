@@ -35,6 +35,10 @@ jobs:
           ./mvnw ${MAVEN_ARGS} -pl processor test \
             -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString+testLocalDateTimeToLocalDateMapping" \
             -Denforcer.skip=true \
+            -Dmaven.compiler.source=11 \
+            -Dmaven.compiler.target=11 \
+            -Dkotlin.skip=true \
+            -Dexcludes=**/*Kotlin* \
             2>&1 | tee test-no-nondex.log
 
       - name: 'Run test WITH NonDex (flakiness confirmed)'
@@ -44,6 +48,8 @@ jobs:
             -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString" \
             -DnondexRuns=20 \
             -Denforcer.skip=true \
+            -Dkotlin.skip=true \
+            -Dexcludes=**/*Kotlin* \
             2>&1 | tee ci-build.log || true
 
       - name: 'Upload logs'
