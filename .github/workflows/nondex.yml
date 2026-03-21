@@ -21,8 +21,9 @@ jobs:
 
       - name: 'Revert fix to show flakiness on original code'
         run: |
-          sed -i 's/this\.mappingsByParameter = new LinkedHashMap<>()/this.mappingsByParameter = new HashMap<>()/' \
+          sed -i 's/new LinkedHashMap<>()/new HashMap<>()/' \
             processor/src/main/java/org/mapstruct/ap/internal/model/BeanMappingMethod.java
+          grep "mappingsByParameter" processor/src/main/java/org/mapstruct/ap/internal/model/BeanMappingMethod.java
 
       - name: 'Build processor with original HashMap (skip tests)'
         run: |
@@ -40,7 +41,7 @@ jobs:
           ./mvnw ${MAVEN_ARGS} -pl processor \
             edu.illinois:nondex-maven-plugin:2.2.1:nondex \
             -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString" \
-            -DnondexRuns=20 \
+            -DnondexRuns=100 \
             2>&1 | tee ci-build.log || true
 
       - name: 'Upload logs'
