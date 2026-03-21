@@ -13,7 +13,7 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v4
 
-      - name: 'Set up JDK 21 for building'
+      - name: 'Set up JDK 21'
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -24,31 +24,18 @@ jobs:
           ./mvnw ${MAVEN_ARGS} clean install -DskipTests -pl processor -am \
             -Dcheckstyle.skip -Dlicense.skip=true
 
-      - name: 'Set up JDK 11 for NonDex'
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '11'
-
-      - name: 'Remove Kotlin test sources'
-        run: rm -rf processor/src/test/java/org/mapstruct/ap/test/kotlin
-
       - name: 'Run test WITHOUT NonDex (should pass)'
         run: |
           ./mvnw ${MAVEN_ARGS} -pl processor test \
             -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString+testLocalDateTimeToLocalDateMapping" \
-            -Denforcer.skip=true \
-            -Dmaven.compiler.release=11 \
             2>&1 | tee test-no-nondex.log
 
       - name: 'Run test WITH NonDex (flakiness confirmed)'
         run: |
           ./mvnw ${MAVEN_ARGS} -pl processor \
-            edu.illinois:nondex-maven-plugin:2.1.1:nondex \
+            edu.illinois:nondex-maven-plugin:2.2.1:nondex \
             -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString" \
             -DnondexRuns=20 \
-            -Denforcer.skip=true \
-            -Dmaven.compiler.release=11 \
             2>&1 | tee ci-build.log || true
 
       - name: 'Upload logs'
