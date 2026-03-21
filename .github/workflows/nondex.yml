@@ -19,7 +19,12 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: 'Build processor (skip tests)'
+      - name: 'Revert fix to show flakiness on original code'
+        run: |
+          sed -i 's/this\.mappingsByParameter = new LinkedHashMap<>()/this.mappingsByParameter = new HashMap<>()/' \
+            processor/src/main/java/org/mapstruct/ap/internal/model/BeanMappingMethod.java
+
+      - name: 'Build processor with original HashMap (skip tests)'
         run: |
           ./mvnw ${MAVEN_ARGS} clean install -DskipTests -pl processor -am \
             -Dcheckstyle.skip -Dlicense.skip=true
@@ -30,7 +35,7 @@ jobs:
             -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString+testLocalDateTimeToLocalDateMapping" \
             2>&1 | tee test-no-nondex.log
 
-      - name: 'Run test WITH NonDex (flakiness confirmed)'
+      - name: 'Run test WITH NonDex on original code (should find failures)'
         run: |
           ./mvnw ${MAVEN_ARGS} -pl processor \
             edu.illinois:nondex-maven-plugin:2.2.1:nondex \
