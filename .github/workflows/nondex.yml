@@ -1,0 +1,55 @@
+name: NonDex Flaky Test Detection
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  MAVEN_ARGS: -V -B --no-transfer-progress -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+
+jobs:
+  nondex:
+    name: 'NonDex – Java8TimeConversionTest'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v4
+
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: 'Revert fix to show flakiness on original code'
+        run: |
+          sed -i 's/new LinkedHashMap<>()/new HashMap<>()/' \
+            processor/src/main/java/org/mapstruct/ap/internal/model/BeanMappingMethod.java
+          grep "mappingsByParameter" processor/src/main/java/org/mapstruct/ap/internal/model/BeanMappingMethod.java
+
+      - name: 'Build processor with original HashMap (skip tests)'
+        run: |
+          ./mvnw ${MAVEN_ARGS} clean install -DskipTests -pl processor -am \
+            -Dcheckstyle.skip -Dlicense.skip=true
+
+      - name: 'Run test WITHOUT NonDex (should pass)'
+        run: |
+          ./mvnw ${MAVEN_ARGS} -pl processor test \
+            -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString+testLocalDateTimeToLocalDateMapping" \
+            2>&1 | tee test-no-nondex.log
+
+      - name: 'Run test WITH NonDex on original code (should find failures)'
+        run: |
+          ./mvnw ${MAVEN_ARGS} -pl processor \
+            edu.illinois:nondex-maven-plugin:2.2.1:nondex \
+            -Dtest="org.mapstruct.ap.test.conversion.java8time.Java8TimeConversionTest#testDateTimeToString" \
+            -DnondexRuns=100 \
+            2>&1 | tee ci-build.log || true
+
+      - name: 'Upload logs'
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nondex-logs
+          path: |
+            test-no-nondex.log
+            ci-build.log
+            processor/.nondex/

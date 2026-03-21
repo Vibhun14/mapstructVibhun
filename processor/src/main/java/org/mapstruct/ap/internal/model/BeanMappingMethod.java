@@ -2154,7 +2154,7 @@ public class BeanMappingMethod extends NormalTypeMappingMethod {
 
         // initialize constant mappings as all mappings, but take out the ones that can be contributed to a
         // parameter mapping.
-        this.mappingsByParameter = new HashMap<>();
+        this.mappingsByParameter = new LinkedHashMap<>();
         this.constantMappings = new ArrayList<>( propertyMappings.size() );
         this.presenceChecksByParameter = presenceChecksByParameter;
         this.constructorMappingsByParameter = new LinkedHashMap<>();
